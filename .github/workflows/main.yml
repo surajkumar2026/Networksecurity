@@ -34,12 +34,11 @@ jobs:
       - name: Run unit tests
         run: echo "Running unit tests"
   
-  build-and-push-ecr-image:
+  build-and-push-ghcr-image:
     name: Continuous Delivery
-    needs: integration
 
     runs-on: ubuntu-latest
-    # permissions:
+    # permissions:    # already uper me permission diya huya hai 
     #   contents: read
     #   packages: write
     #   # This is used to complete the identity challenge
@@ -109,4 +108,19 @@ jobs:
         # This step uses the identity token to provision an ephemeral certificate
         # against the sigstore community Fulcio instance.
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
-  
+  Continuous-Deployment:
+    name: Continuous-Deployment
+    needs: build-and-push-ghcr-image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Server
+        run: |
+          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.SERVER_IP }} <<EOF
+            docker stop my_app || true
+            docker rm my_app || true
+            docker pull ghcr.io/${{ github.repository }}:latest
+            docker run -d -p 8080:8080 --name=my_app ghcr.io/${{ github.repository }}:latest
+          EOF
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
