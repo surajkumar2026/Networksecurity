@@ -110,22 +110,17 @@ jobs:
         # against the sigstore community Fulcio instance.
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
   Continuous-Deployment:
-    name: Continuous-Deployment
-    needs: build-and-push-ghcr-image
-    runs-on: ubuntu-latest
-    steps:
-      - name: Setup SSH Key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
-      - name: Deploy to Server
-        run: |
-          ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.SERVER_IP }} <<EOF
-            docker stop my_app || true
-            docker rm my_app || true
-            docker pull ghcr.io/${{ github.repository }}:latest
-            docker run -d -p 8080:8080 --name=my_app ghcr.io/${{ github.repository }}:latest
-          EOF
+   name: Continuous-Deployment
+   needs: build-and-push-ghcr-image
+   runs-on: ubuntu-latest
+   steps:
+     - name: Deploy to Server (Manual Password Entry)
+       run: |
+         ssh ubuntu@${{ secrets.SERVER_IP }} <<EOF
+           docker login ghcr.io -u USERNAME -p GITHUB_PAT
+           docker stop my_app || true
+           docker rm my_app || true
+           docker pull ghcr.io/${{ github.repository }}:latest
+           docker run -d -p 8080:8080 --name=my_app ghcr.io/${{ github.repository }}:latest
+         EOF
