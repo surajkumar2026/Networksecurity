@@ -85,5 +85,6 @@ async def predict_route(request: Request,file: UploadFile = File(...)):
     
 
     
-if __name__=="__main__":
-    app_run(app,host="0.0.0.0",port=8000)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8080))  # Render assigns a port dynamically
+    app_run(app, host="0.0.0.0", port=port)  # Uses dynamic port
